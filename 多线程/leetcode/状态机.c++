@@ -1,3 +1,7 @@
+/*
+力扣：1117. H2O 生成
+*/
+
 class H2O {
 private:
     std::condition_variable cv;
