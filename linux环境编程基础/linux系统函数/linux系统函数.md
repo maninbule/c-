@@ -286,7 +286,7 @@ struct stat {
        #define st_ctime st_ctim.tv_sec
 };
 ```
-**示例：输出文件的大小**
+## 示例：输出文件的大小
 ```c
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -306,4 +306,115 @@ int main(){
 
     return 0;
 }
+```
+## 示例：实现ls -l 文件名功能
+要实现的效果
+```
+ls -l copy.c
+-rw-rw-r-- 1 leo leo 631 6月   1 18:14 copy.c
+```
+```c
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <pwd.h>
+#include <grp.h>
+#include <time.h>
+#include <string.h>
+
+int main(int argc,char *argv[]){
+    if(argc < 2){
+        printf("usage: ./ls filename");
+        return -1;
+    }
+    struct stat statbuf;
+    int res = stat(argv[1],&statbuf);
+    char type[20] = {0};
+    switch(statbuf.st_mode & S_IFMT){ // 前4位表示文件类型，这里是取出前4位
+        case S_IFSOCK:
+            type[0] = 's';
+            break;
+        case S_IFLNK:
+            type[0] = 'l';
+            break;
+        case S_IFREG:
+            type[0] = '-';
+            break;
+        case S_IFBLK:
+            type[0] = 'b';
+            break;
+        case S_IFDIR:
+            type[0] = 'd';
+            break;
+        case S_IFCHR:
+            type[0] = 'c';
+            break;
+        case S_IFIFO:
+            type[0] = 'p';
+            break;
+        default:
+            type[0] = '?';
+    }
+    char name[9] = "rwxrwxrwx";
+    unsigned int nameno[9] = {S_IRUSR,S_IWUSR,S_IXUSR,S_IRGRP,S_IWGRP,S_IXGRP,S_IROTH,S_IWOTH,S_IXOTH};
+    for(int i = 0;i<9;i++){
+        if(statbuf.st_mode & nameno[i]){
+            type[i + 1] = name[i];
+        }else{
+            type[i + 1] = '-';
+        }
+    }
+    char *username = getpwuid(statbuf.st_uid)->pw_name;
+    char *grpname = getgrgid(statbuf.st_gid)->gr_name;
+    time_t t = statbuf.st_atime;
+    char *t_str = ctime(&t);
+    char time_str[100] = {0};
+    strncpy(time_str,t_str,strlen(t_str)-1);
+
+    char out[100] = {0};
+    sprintf(out,"%s %lu %s %s %ld %s %s",type,statbuf.st_nlink,username,grpname,statbuf.st_size,time_str,argv[1]);
+    printf("%s\n",out);
+
+    return 0;
+}
+/*
+各种宏定义：
+
+取前4位的掩码
+S_IFMT     0170000   bit mask for the file type bit field
+
+文件类型
+S_IFSOCK   0140000   socket
+S_IFLNK    0120000   symbolic link
+S_IFREG    0100000   regular file
+S_IFBLK    0060000   block device
+S_IFDIR    0040000   directory
+S_IFCHR    0020000   character device
+S_IFIFO    0010000   FIFO
+-------------------------------------------------------
+各种文件权限的宏定义
+S_ISUID     04000   set-user-ID bit
+S_ISGID     02000   set-group-ID bit (see below)
+
+S_ISVTX     01000   sticky bit (see below)
+
+S_IRWXU     00700   owner has read, write, and execute permission
+S_IRUSR     00400   owner has read permission
+S_IWUSR     00200   owner has write permission
+S_IXUSR     00100   owner has execute permission
+
+S_IRWXG     00070   group has read, write, and execute permission
+S_IRGRP     00040   group has read permission
+S_IWGRP     00020   group has write permission
+S_IXGRP     00010   group has execute permission
+
+S_IRWXO     00007   others  (not  in group) have read, write, and
+                    execute permission
+S_IROTH     00004   others have read permission
+S_IWOTH     00002   others have write permission
+S_IXOTH     00001   others have execute permission
+
+*/
 ```
