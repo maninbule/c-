@@ -34,9 +34,9 @@ e(environment) 存有环境变量字符串地址的指针数组的地址：也�
                 ./a.out hello world
 
             - arg:是执行可执行文件所需要的参数列表
-                第一个参数一般没有什么作用，为了方便，一般写的是执行的程序的名称
+                第一个参数一般没有什么作用，为了方便，一般写的是执行的程序的名称，需要写上
                 从第二个参数开始往后，就是程序执行所需要的的参数列表。
-                参数最后需要以NULL结束（哨兵）
+                参数最后需要用NULL结束（哨兵），因为是可变参数，需要加一个结束标志
 
         - 返回值：
             只有当调用失败，才会有返回值，返回-1，并且设置errno
@@ -84,3 +84,42 @@ hello world: pid = 3984 ppid = 3983
 2
 ```
 可以看到hello程序和子进程是一样的pid和ppid
+
+## 示例：使用execlp来调用环境变量中的ls - l
+```c
+#include <unistd.h>
+#include <stdio.h>
+
+int main(){
+    pid_t pid = fork();
+    if(pid > 0){
+        printf("father process: pid = %d ppid = %d\n",getpid(),getppid());
+        sleep(1);
+    }else if(pid == 0){
+        printf("child process: pid = %d ppid = %d\n",getpid(),getppid());
+        execlp("ls","ls","-ll",NULL);
+    }
+    for(int i = 0;i<3;i++){
+        printf("%d\n",i);
+    }
+
+    return 0;
+    ```
+}
+```
+**输出**
+```
+leo@leo-virtual-machine:~/linux/process/exec$ ./execlp
+father process: pid = 4008 ppid = 3420
+child process: pid = 4009 ppid = 4008
+总用量 48
+-rwxrwxr-x 1 leo leo 8520 6月   5 21:42 execl
+-rw-rw-r-- 1 leo leo  403 6月   5 21:42 execl.c
+-rwxrwxr-x 1 leo leo 8520 6月   5 21:51 execlp
+-rw-rw-r-- 1 leo leo  404 6月   5 21:51 execlp.c
+-rwxrwxr-x 1 leo leo 8392 6月   5 21:38 hello
+-rw-rw-r-- 1 leo leo  135 6月   5 21:37 hello.c
+0
+1
+2
+```
