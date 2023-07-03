@@ -62,7 +62,7 @@ int main(){
                 perror("accept");
                 exit(-1);
             }
-            int idx = -1;
+            int idx = -1;//这里最好放在accept前面，万一没有空闲的位置了，只要没有accept还可以将客户端的请求连接缓存着
             for(int i = 1;i<maxn;i++){
                 if(fds[i].fd == -1){
                     fds[i].fd = cfd;
